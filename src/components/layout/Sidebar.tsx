@@ -25,7 +25,7 @@ interface SidebarProps {
   availableTabs: TabConfig[];
 }
 
-// Icon mapping for dynamic rendering
+// This maps tab names to their corresponding icons for a consistent look
 const iconMap = {
   LayoutDashboard,
   BookOpen,
@@ -56,7 +56,7 @@ export const Sidebar = ({ activeTab, onTabChange, userRole, availableTabs }: Sid
 
   return (
     <>
-      {/* Mobile Menu Button */}
+      {/* The hamburger menu button for mobile users */}
       <Button
         variant="ghost"
         size="sm"
@@ -66,7 +66,7 @@ export const Sidebar = ({ activeTab, onTabChange, userRole, availableTabs }: Sid
         <Menu className="h-4 w-4" />
       </Button>
 
-      {/* Mobile Overlay */}
+      {/* Dark overlay that appears behind mobile sidebar */}
       {isMobileOpen && (
         <div 
           className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
@@ -74,18 +74,18 @@ export const Sidebar = ({ activeTab, onTabChange, userRole, availableTabs }: Sid
         />
       )}
 
-      {/* Sidebar */}
+      {/* The main sidebar panel */}
       <div className={cn(
         "fixed left-0 top-0 z-40 h-full glass border-r transition-all duration-300 ease-in-out",
-        "flex flex-col overflow-hidden", // Prevent content overflow
+        "flex flex-col overflow-hidden", // Make sure content doesn't spill out of the sidebar
         isCollapsed ? "w-16" : "w-64",
-        // Mobile responsive classes - better touch handling
-        "max-w-[85vw] sm:max-w-none", // Prevent sidebar from being too wide on small screens
+        // Make sidebar touch-friendly on mobile devices
+        "max-w-[85vw] sm:max-w-none", // Don't let sidebar take up the entire screen on small phones
         isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-        "touch-target" // Ensure good touch targets
+        "touch-target" // Ensures buttons are easy to tap on mobile
       )}>
         <div className="flex h-full flex-col">
-          {/* Header */}
+          {/* App branding and logo section */}
           <div className="flex h-16 items-center gap-3 border-b border-border/50 px-3 sm:px-4">
             <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-gradient-primary flex-shrink-0">
               <GraduationCap className="h-4 w-4 sm:h-6 sm:w-6 text-primary-foreground" />
@@ -111,7 +111,7 @@ export const Sidebar = ({ activeTab, onTabChange, userRole, availableTabs }: Sid
             </Button>
           </div>
 
-          {/* User Info */}
+          {/* Current user's profile information */}
           {!isCollapsed && (
             <div className="border-b border-border/50 p-4">
               <div className="flex items-center gap-3">
@@ -132,7 +132,7 @@ export const Sidebar = ({ activeTab, onTabChange, userRole, availableTabs }: Sid
             </div>
           )}
 
-          {/* Navigation */}
+          {/* Main navigation menu */}
           <nav className="flex-1 space-y-1 p-4">
             {availableTabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -169,7 +169,7 @@ export const Sidebar = ({ activeTab, onTabChange, userRole, availableTabs }: Sid
             })}
           </nav>
 
-          {/* Footer */}
+          {/* Bottom section with logout and settings */}
           <div className="border-t border-border/50 p-4 space-y-2">
             <Button
               variant="ghost"

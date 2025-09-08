@@ -9,7 +9,7 @@ export interface User {
   email: string;
   name?: string;
   role?: UserRole;
-  isApproved?: boolean; // For teacher approval status
+  isApproved?: boolean; // Tracks whether teacher accounts have been approved by admin
 }
 
 interface AuthContextType {
@@ -34,7 +34,7 @@ const fetchUserProfile = async (supabaseUser: SupabaseUser): Promise<User> => {
     email: supabaseUser.email ?? "",
     name: data?.name ?? supabaseUser.email,
     role: data?.role as UserRole | undefined,
-    isApproved: true, // For now, default to approved. This can be enhanced later with proper DB schema
+    isApproved: true, // All new accounts are approved by default for now - we'll add proper admin approval workflow later
   };
 };
 

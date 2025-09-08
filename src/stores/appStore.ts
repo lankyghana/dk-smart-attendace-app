@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { UserRole } from '@/contexts/AuthContext';
 
-// Tab configuration types
+// Type definitions for our tab system
 export interface TabConfig {
   id: string;
   label: string;
@@ -11,22 +11,22 @@ export interface TabConfig {
   requiresApproval?: boolean;
 }
 
-// App state interface
+// The main application state that gets shared across components
 interface AppState {
   activeTab: string;
   isTeacherApproved: boolean;
   tabConfigurations: TabConfig[];
   
-  // Actions
+  // Functions to change the application state
   setActiveTab: (tab: string) => void;
   setTeacherApproved: (approved: boolean) => void;
   
-  // Getters
+  // Functions to calculate derived information
   getDefaultTab: (userRole: UserRole) => string;
   getAvailableTabs: (userRole: UserRole, isApproved?: boolean) => TabConfig[];
 }
 
-// Create the store
+// Set up our Zustand store for managing application state
 export const useAppStore = create<AppState>((set, get) => ({
   activeTab: 'dashboard',
   isTeacherApproved: false,
@@ -57,7 +57,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
   
-  // Tab configurations - declarative approach
+  // Define what tabs each user role can access and their display order
   tabConfigurations: [
     {
       id: 'dashboard',
@@ -92,7 +92,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   ] as TabConfig[],
 }));
 
-// Selector hooks for easier component access
+// Convenient hooks for components to easily access specific parts of the store
 export const useActiveTab = () => useAppStore(state => state.activeTab);
 export const useSetActiveTab = () => useAppStore(state => state.setActiveTab);
 export const useTeacherApproval = () => useAppStore(state => ({

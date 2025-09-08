@@ -1,18 +1,22 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap, Shield, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { GraduationCap, Loader2 } from "lucide-react";
 
 export const LoginForm = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [role, setRole] = useState<"student" | "teacher" | "admin">("student");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [isLoadingForgotPassword, setIsLoadingForgotPassword] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
 
@@ -25,7 +29,7 @@ export const LoginForm = () => {
       if (success) {
         toast({
           title: "Welcome back!",
-          description: `Successfully logged in as ${role}`,
+          description: "Successfully logged in",
         });
       } else {
         toast({
@@ -45,6 +49,48 @@ export const LoginForm = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address to reset your password.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoadingForgotPassword(true);
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Reset link sent",
+          description: "Check your email for a password reset link.",
+        });
+        setShowForgotPassword(false);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingForgotPassword(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in">
       <Card className="w-full max-w-md glass shadow-elevated">
@@ -58,84 +104,95 @@ export const LoginForm = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs value={role} onValueChange={(value) => setRole(value as "student" | "teacher" | "admin")} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="student" className="flex items-center gap-2">
-                <GraduationCap className="h-4 w-4" />
-                Student
-              </TabsTrigger>
-              <TabsTrigger value="teacher" className="flex items-center gap-2">
-                <GraduationCap className="h-4 w-4" />
-                Teacher
-              </TabsTrigger>
-              <TabsTrigger value="admin" className="flex items-center gap-2">
-                <Shield className="h-4 w-4" />
-                Admin
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="student" className="space-y-4">
-              <div className="p-3 bg-muted rounded-lg text-sm text-muted-foreground">
-                <p><strong>Demo Student:</strong> john@university.edu</p>
-                <p><strong>Password:</strong> student123</p>
+          {!showForgotPassword ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="transition-smooth"
+                />
               </div>
-            </TabsContent>
-
-            <TabsContent value="teacher" className="space-y-4">
-              <div className="p-3 bg-muted rounded-lg text-sm text-muted-foreground">
-                <p><strong>Demo Teacher:</strong> mike@university.edu</p>
-                <p><strong>Password:</strong> teacher123</p>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <PasswordInput
+                  id="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="transition-smooth"
+                />
               </div>
-            </TabsContent>
-
-            <TabsContent value="admin" className="space-y-4">
-              <div className="p-3 bg-muted rounded-lg text-sm text-muted-foreground">
-                <p><strong>Demo Admin:</strong> sarah@university.edu</p>
-                <p><strong>Password:</strong> admin123</p>
+              <div className="flex items-center justify-between">
+                <Button
+                  type="button"
+                  variant="link"
+                  className="px-0 font-normal text-sm text-muted-foreground hover:text-primary"
+                  onClick={() => setShowForgotPassword(true)}
+                >
+                  Forgot password?
+                </Button>
               </div>
-            </TabsContent>
-          </Tabs>
-
-          <form onSubmit={handleSubmit} className="space-y-4 mt-6">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="transition-smooth"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="transition-smooth"
-              />
-            </div>
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-primary hover:shadow-glow transition-spring"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                `Sign in as ${role}`
-              )}
-            </Button>
-          </form>
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-primary hover:shadow-glow transition-spring"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign in"
+                )}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="resetEmail">Email</Label>
+                <Input 
+                  id="resetEmail" 
+                  type="email" 
+                  placeholder="Enter your email"
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  required 
+                />
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowForgotPassword(false)}
+                >
+                  Back to login
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="flex-1 bg-gradient-primary hover:shadow-glow transition-spring" 
+                  disabled={isLoadingForgotPassword}
+                >
+                  {isLoadingForgotPassword ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                      Sending...
+                    </>
+                  ) : (
+                    "Send reset link"
+                  )}
+                </Button>
+              </div>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

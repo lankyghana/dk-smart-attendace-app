@@ -26,14 +26,14 @@ export const checkAndCreateDemoUsers = async () => {
   
   for (const user of demoUsers) {
     try {
-      // Try to sign in first to check if user exists
+      // First, let's check if this user already exists by trying to sign them in
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: user.email,
         password: user.password
       });
       
       if (signInError && signInError.message.includes("Invalid login credentials")) {
-        // User doesn't exist, create them
+        // The user doesn't exist yet, so let's create their account
         console.log(`Creating demo user: ${user.email}`);
         const { data, error } = await supabase.auth.signUp({
           email: user.email,
@@ -53,7 +53,7 @@ export const checkAndCreateDemoUsers = async () => {
         }
       } else if (!signInError) {
         console.log(`User ${user.email} already exists`);
-        // Sign out after checking
+        // Clean up by signing out after we've finished checking/creating users
         await supabase.auth.signOut();
       }
     } catch (error) {

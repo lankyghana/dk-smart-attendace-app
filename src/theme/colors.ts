@@ -6,27 +6,27 @@
  */
 
 export const colors = {
-  // Base colors
+  // Foundation colors for the entire design system
   border: "hsl(var(--border))",
   input: "hsl(var(--input))",
   ring: "hsl(var(--ring))",
   background: "hsl(var(--background))",
   foreground: "hsl(var(--foreground))",
 
-  // Primary brand colors
+  // Our main brand colors used throughout the app
   primary: {
     DEFAULT: "hsl(var(--primary))",
     foreground: "hsl(var(--primary-foreground))",
     glow: "hsl(var(--primary-glow))",
   },
 
-  // Secondary colors
+  // Supporting colors that complement our primary palette
   secondary: {
     DEFAULT: "hsl(var(--secondary))",
     foreground: "hsl(var(--secondary-foreground))",
   },
 
-  // Status colors
+  // Colors that communicate different states and actions to users
   destructive: {
     DEFAULT: "hsl(var(--destructive))",
     foreground: "hsl(var(--destructive-foreground))",
@@ -40,7 +40,7 @@ export const colors = {
     foreground: "hsl(var(--warning-foreground))",
   },
 
-  // Neutral colors
+  // Grayscale colors for text, borders, and backgrounds
   muted: {
     DEFAULT: "hsl(var(--muted))",
     foreground: "hsl(var(--muted-foreground))",
@@ -50,7 +50,7 @@ export const colors = {
     foreground: "hsl(var(--accent-foreground))",
   },
 
-  // UI component colors
+  // Colors specifically for buttons, cards, and interactive elements
   popover: {
     DEFAULT: "hsl(var(--popover))",
     foreground: "hsl(var(--popover-foreground))",
@@ -60,7 +60,7 @@ export const colors = {
     foreground: "hsl(var(--card-foreground))",
   },
 
-  // Sidebar specific colors
+  // Colors designed specifically for the navigation sidebar
   sidebar: {
     DEFAULT: "hsl(var(--sidebar-background))",
     foreground: "hsl(var(--sidebar-foreground))",

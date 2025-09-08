@@ -1,7 +1,7 @@
 import { render, RenderOptions } from '@testing-library/react'
 import { ReactElement } from 'react'
 
-// Custom render function that includes any providers
+// Helper function that wraps components with necessary providers for testing
 const customRender = (
   ui: ReactElement,
   options?: Omit<RenderOptions, 'wrapper'>
@@ -10,7 +10,7 @@ const customRender = (
 export * from '@testing-library/react'
 export { customRender as render }
 
-// Mock data generators
+// Functions to create fake data for testing purposes
 export const mockTeacher = (overrides = {}) => ({
   id: "T001",
   name: "Dr. Test Teacher",

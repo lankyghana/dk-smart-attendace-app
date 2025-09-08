@@ -19,7 +19,7 @@ import { StudentAttendance } from '@/components/attendance/StudentAttendance';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import { UserRole } from '@/contexts/AuthContext';
 
-// Define component mappings to eliminate duplication
+// This maps different tabs to their corresponding components, helping us avoid code duplication
 const COMPONENTS = {
   AdminDashboard,
   Dashboard,
@@ -28,7 +28,7 @@ const COMPONENTS = {
   StudentAttendance,
 } as const;
 
-// Optimized component registry using a cleaner approach
+// Smart component registry that reuses components efficiently across different roles
 export const componentRegistry = {
   dashboard: {
     admin: COMPONENTS.AdminDashboard,
@@ -37,27 +37,27 @@ export const componentRegistry = {
   },
   classes: {
     admin: COMPONENTS.ClassManager,
-    teacher: COMPONENTS.ClassManager, // Shared component reference
+    teacher: COMPONENTS.ClassManager, // Teachers can manage their classes using this same component
     student: null,
   },
   attendance: {
     admin: COMPONENTS.AttendanceTracker,
-    teacher: COMPONENTS.AttendanceTracker, // Shared component reference
+    teacher: COMPONENTS.AttendanceTracker, // Both admins and teachers need to track attendance
     student: COMPONENTS.StudentAttendance,
   },
   'qr-generator': {
-    admin: COMPONENTS.ClassManager, // Reuses ClassManager for QR functionality
-    teacher: COMPONENTS.ClassManager, // Shared component reference
+    admin: COMPONENTS.ClassManager, // Admins use the ClassManager to generate QR codes too
+    teacher: COMPONENTS.ClassManager, // Same component, different user role
     student: null,
   },
   analytics: {
-    admin: COMPONENTS.AdminDashboard, // Reuses AdminDashboard for analytics
-    teacher: COMPONENTS.Dashboard, // Reuses Dashboard for teacher analytics
+    admin: COMPONENTS.AdminDashboard, // Admins get the full analytics dashboard
+    teacher: COMPONENTS.Dashboard, // Teachers get a simpler version with their class data
     student: null,
   },
 } as const;
 
-// Helper function to get component for a specific tab and role
+// This function helps us find the right component for any tab and user role combination
 export const getComponentForTabAndRole = (
   tabId: string,
   userRole: UserRole
@@ -68,18 +68,18 @@ export const getComponentForTabAndRole = (
   return tabComponents[userRole] || null;
 };
 
-// Helper to identify shared components (useful for maintenance and optimization)
+// Tracks which components are shared between different roles - useful for maintenance
 export const getSharedComponents = () => {
   const sharedMappings = {
-    // Components shared between admin and teacher roles
-    'ClassManager': ['classes', 'qr-generator'], // Used for both class management and QR generation
-    'AttendanceTracker': ['attendance'], // Used by both admin and teacher for attendance tracking
+    // These components work for both admin and teacher users
+    'ClassManager': ['classes', 'qr-generator'], // Handles both class management and QR code creation
+    'AttendanceTracker': ['attendance'], // Both roles need to track student attendance
   };
   
   return sharedMappings;
 };
 
-// Helper to get all tabs that use a specific component
+// Finds all the tabs where a specific component is being used
 export const getTabsUsingComponent = (componentName: keyof typeof COMPONENTS): string[] => {
   const tabs: string[] = [];
   
@@ -95,7 +95,7 @@ export const getTabsUsingComponent = (componentName: keyof typeof COMPONENTS): s
   return tabs;
 };
 
-// Tab metadata with icons and labels
+// Configuration for each tab including what icon to show and display name
 export const tabMetadata = {
   dashboard: {
     label: 'Dashboard',

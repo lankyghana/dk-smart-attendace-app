@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { DemoSetup } from "@/components/setup/DemoSetup";
+import { supabase } from "@/integrations/supabase/client";
 import { GraduationCap, Shield, Loader2, Users } from "lucide-react";
 
 const Auth = () => {
@@ -22,6 +23,8 @@ const Auth = () => {
   const [name, setName] = useState("");
   const [role, setRole] = useState<"teacher" | "admin" | "student">("student");
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [isLoadingForgotPassword, setIsLoadingForgotPassword] = useState(false);
 
   useEffect(() => {
     document.title = tab === "login" ? "Login • DK Smart Attendance" : "Sign up • DK Smart Attendance";
@@ -103,6 +106,48 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address to reset your password.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoadingForgotPassword(true);
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Reset link sent",
+          description: "Check your email for a password reset link.",
+        });
+        setShowForgotPassword(false);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingForgotPassword(false);
+    }
+  };
+
   const getRoleIcon = (role: string) => {
     switch (role) {
       case "admin":
@@ -145,51 +190,93 @@ const Auth = () => {
 
             <TabsContent value="login">
               <div className="space-y-4">
-                <div className="p-3 bg-muted rounded-lg text-sm text-muted-foreground space-y-1">
-                  <p><strong>Demo Accounts:</strong></p>
-                  <p>👨‍🎓 Student: john@university.edu / student123</p>
-                  <p>👨‍🏫 Teacher: mike@university.edu / teacher123</p>
-                  <p>👑 Admin: sarah@university.edu / admin123</p>
-                </div>
-                
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="Enter your email"
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
-                      required 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input 
-                      id="password" 
-                      type="password" 
-                      placeholder="Enter your password"
-                      value={password} 
-                      onChange={(e) => setPassword(e.target.value)} 
-                      required 
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-gradient-primary hover:shadow-glow transition-spring" 
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                        Signing in...
-                      </>
-                    ) : (
-                      "Sign in"
-                    )}
-                  </Button>
-                </form>
+                {!showForgotPassword ? (
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        placeholder="Enter your email"
+                        value={email} 
+                        onChange={(e) => setEmail(e.target.value)} 
+                        required 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <PasswordInput 
+                        id="password" 
+                        placeholder="Enter your password"
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)} 
+                        required 
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="px-0 font-normal text-sm text-muted-foreground hover:text-primary"
+                        onClick={() => setShowForgotPassword(true)}
+                      >
+                        Forgot password?
+                      </Button>
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-primary hover:shadow-glow transition-spring" 
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                          Signing in...
+                        </>
+                      ) : (
+                        "Sign in"
+                      )}
+                    </Button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="resetEmail">Email</Label>
+                      <Input 
+                        id="resetEmail" 
+                        type="email" 
+                        placeholder="Enter your email"
+                        value={email} 
+                        onChange={(e) => setEmail(e.target.value)} 
+                        required 
+                      />
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setShowForgotPassword(false)}
+                      >
+                        Back to login
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        className="flex-1 bg-gradient-primary hover:shadow-glow transition-spring" 
+                        disabled={isLoadingForgotPassword}
+                      >
+                        {isLoadingForgotPassword ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                            Sending...
+                          </>
+                        ) : (
+                          "Send reset link"
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </div>
             </TabsContent>
 
@@ -218,14 +305,14 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password2">Password</Label>
-                  <Input 
+                  <PasswordInput 
                     id="password2" 
-                    type="password" 
                     placeholder="Create a password"
                     value={password} 
                     onChange={(e) => setPassword(e.target.value)} 
                     required 
                     minLength={6}
+                    showStrengthIndicator={true}
                   />
                 </div>
                 <div className="space-y-2">
@@ -280,9 +367,6 @@ const Auth = () => {
           </Tabs>
         </CardContent>
       </Card>
-      
-      {/* Demo Setup Component */}
-      <DemoSetup />
     </div>
   );
 };

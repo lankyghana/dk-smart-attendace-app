@@ -1,8 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Clock, Mail, Shield } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { AlertTriangle, Clock, Mail, Shield, LogOut } from "lucide-react";
 
 export const TeacherPendingApproval = () => {
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+  };
+
   return (
     <div className="min-h-screen p-6 animate-fade-in flex items-center justify-center">
       <Card className="w-full max-w-md glass shadow-elevated">
@@ -71,6 +78,15 @@ export const TeacherPendingApproval = () => {
               onClick={() => window.location.reload()}
             >
               Check Status Again
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20 hover:border-destructive/30"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
             </Button>
             
             <div className="text-center text-sm text-muted-foreground">

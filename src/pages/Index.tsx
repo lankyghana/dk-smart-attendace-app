@@ -5,7 +5,7 @@ import { useAppStore } from "@/stores/appStore";
 import { getComponentForTabAndRole } from "@/config/componentRegistry";
 import { TeacherPendingApproval } from "@/components/teacher/TeacherPendingApproval";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { Dashboard } from "@/components/dashboard/Dashboard"; // Fallback component
+import { Dashboard } from "@/components/dashboard/Dashboard"; // This serves as our fallback when other components aren't available
 
 const Index = () => {
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ const Index = () => {
     getAvailableTabs 
   } = useAppStore();
 
-  // Initialize default tab based on user role
+  // Let's set up the default tab based on what the user's role should see first
   useEffect(() => {
     if (user?.role) {
       const defaultTab = getDefaultTab(user.role);
@@ -26,7 +26,7 @@ const Index = () => {
     }
   }, [user?.role, getDefaultTab, setActiveTab]);
 
-  // Handle loading state
+  // Show a loading spinner while we're waiting for authentication to complete
   if (loading) {
     return (
       <div className="flex min-h-screen bg-background items-center justify-center">
@@ -38,22 +38,22 @@ const Index = () => {
     );
   }
 
-  // Handle unauthenticated state
+  // If user isn't logged in, redirect them to the auth page
   if (!isAuthenticated || !user) {
     navigate("/auth");
     return null;
   }
 
-  // Check if teacher needs approval
+  // Teachers need admin approval before they can access the full system
   const needsApproval = user.role === "teacher" && !isTeacherApproved;
   
-  // Get the component to render based on current tab and user role
+  // Figure out which component to show based on the selected tab and user's role
   const CurrentComponent = getComponentForTabAndRole(activeTab, user.role!) || Dashboard;
   
-  // Get available tabs for current user
+  // Different user roles see different navigation tabs
   const availableTabs = getAvailableTabs(user.role!, isTeacherApproved);
 
-  // Render teacher pending approval if needed
+  // If teacher is waiting for approval, show them a special message instead of the main app
   if (needsApproval) {
     return (
       <div className="flex min-h-screen bg-background">
@@ -68,7 +68,7 @@ const Index = () => {
     );
   }
 
-  // Main application layout
+  // Here's the main application layout with sidebar and content area
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar 

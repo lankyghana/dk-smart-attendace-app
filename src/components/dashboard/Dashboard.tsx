@@ -27,7 +27,7 @@ import {
   Cell
 } from "recharts";
 
-// Mock data for charts
+// Sample data to populate our charts and show how the dashboard will look with real data
 const attendanceData = [
   { day: "Mon", present: 85, absent: 15 },
   { day: "Tue", present: 92, absent: 8 },
@@ -65,7 +65,7 @@ export const Dashboard = () => {
 
   return (
     <div className="min-h-screen p-3 sm:p-6 animate-fade-in">
-      {/* Header */}
+      {/* Dashboard title and welcome message */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="text-responsive-2xl font-bold text-foreground text-wrap">
@@ -82,7 +82,7 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Key metrics displayed as cards */}
       <div className="responsive-grid mb-6 sm:mb-8">
         <Card className="glass shadow-card hover:shadow-elevated transition-spring animate-slide-up touch-target">
           <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6">
@@ -139,7 +139,7 @@ export const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Charts Section */}
+      {/* Visual charts showing attendance trends and data */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <Card className="glass shadow-card">
           <CardHeader>
@@ -203,7 +203,7 @@ export const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Bottom Section */}
+      {/* Recent activities and additional information */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="glass shadow-card lg:col-span-2">
           <CardHeader>
