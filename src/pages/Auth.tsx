@@ -24,9 +24,9 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    document.title = tab === "login" ? "Login • Smart Attendance" : "Sign up • Smart Attendance";
+    document.title = tab === "login" ? "Login • DK Smart Attendance" : "Sign up • DK Smart Attendance";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Login or sign up to the Smart Attendance system.");
+    if (meta) meta.setAttribute("content", "Login or sign up to DK Smart Attendance.");
   }, [tab]);
 
   useEffect(() => {

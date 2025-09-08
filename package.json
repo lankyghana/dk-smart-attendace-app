@@ -1,8 +1,8 @@
 {
-  "name": "dk-smart-attendace",
+  "name": "dk-smart-attendance",
   "private": true,
   "version": "1.0.0",
-  "description": "Smart Attendance System for Educational Institutions",
+  "description": "DK Smart Attendance - Professional attendance management system for educational institutions",
   "author": "lankyghana",
   "repository": {
     "type": "git",

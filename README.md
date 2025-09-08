@@ -1,4 +1,4 @@
-# DK Smart Attendance - Smart Attendance System
+# DK Smart Attendance
 
 A professional attendance management system for educational institutions built by lankyghana.
 
