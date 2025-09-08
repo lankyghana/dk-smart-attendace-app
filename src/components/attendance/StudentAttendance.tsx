@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { QRScanner } from "./QRScanner";
+import { AttendanceService, AttendanceRecord } from "@/services/attendanceService";
 import { 
   CheckCircle, 
   XCircle, 
@@ -50,16 +53,154 @@ const studentClasses = [
   }
 ];
 
-const recentAttendance = [
-  { date: "2025-09-06", class: "Mathematics 101", status: "present", time: "09:05 AM" },
-  { date: "2025-09-05", class: "Physics 201", status: "present", time: "02:03 PM" },
-  { date: "2025-09-04", class: "Chemistry Lab", status: "present", time: "03:01 PM" },
-  { date: "2025-09-04", class: "Mathematics 101", status: "present", time: "09:02 AM" },
-  { date: "2025-09-03", class: "Physics 201", status: "late", time: "02:15 PM" },
-];
-
 export const StudentAttendance = () => {
   const [qrCode, setQrCode] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [recentAttendance, setRecentAttendance] = useState<AttendanceRecord[]>([]);
+  const [attendanceStats, setAttendanceStats] = useState({
+    totalClasses: 0,
+    attended: 0,
+    rate: 0,
+    presentCount: 0,
+    lateCount: 0,
+    absentCount: 0
+  });
+  const { toast } = useToast();
+
+  // Load attendance data on component mount
+  useEffect(() => {
+    loadAttendanceData();
+  }, []);
+
+  const loadAttendanceData = async () => {
+    try {
+      const records = await AttendanceService.getStudentAttendance();
+      const stats = await AttendanceService.getAttendanceStats();
+      
+      setRecentAttendance(records.slice(0, 5)); // Show last 5 records
+      setAttendanceStats(stats);
+    } catch (error) {
+      console.error('Error loading attendance data:', error);
+    }
+  };
+
+  const markAttendance = async (attendanceCode: string) => {
+    if (!attendanceCode.trim()) {
+      toast({
+        title: "Invalid Code",
+        description: "Please enter or scan a valid attendance code",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Parse the QR code data (assuming it's JSON format from QRCodeGenerator)
+      let attendanceData;
+      try {
+        attendanceData = JSON.parse(attendanceCode);
+        
+        // Validate QR code structure and expiry
+        if (attendanceData.expiresAt && Date.now() > attendanceData.expiresAt) {
+          toast({
+            title: "Code Expired",
+            description: "This QR code has expired. Please ask your instructor for a new one.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Validate required fields
+        if (!attendanceData.classId || !attendanceData.classCode) {
+          throw new Error("Invalid QR code format");
+        }
+        
+        // Use AttendanceService to mark attendance
+        const result = await AttendanceService.markAttendance(attendanceData);
+        
+        if (result.success) {
+          toast({
+            title: "Attendance Marked!",
+            description: result.message,
+          });
+          setQrCode("");
+          
+          // Refresh attendance data
+          await loadAttendanceData();
+        } else {
+          toast({
+            title: "Failed to Mark Attendance",
+            description: result.message,
+            variant: "destructive",
+          });
+        }
+        
+      } catch (parseError) {
+        // If it's not JSON, treat it as a simple code and simulate validation
+        const enrolledClassCodes = studentClasses.map(cls => cls.className.replace(/\s+/g, '_').toUpperCase());
+        const isValidCode = enrolledClassCodes.some(code => attendanceCode.toUpperCase().includes(code)) ||
+                           attendanceCode.includes('MATH101') || 
+                           attendanceCode.includes('PHYS201') ||
+                           attendanceCode.includes('CHEM_LAB');
+
+        if (isValidCode) {
+          // Create a mock attendance record for simple codes
+          const mockData = {
+            classId: `class_${Date.now()}`,
+            className: "Unknown Class",
+            classCode: attendanceCode,
+            token: attendanceCode,
+            timestamp: Date.now(),
+            expiresAt: Date.now() + (5 * 60 * 1000) // 5 minutes from now
+          };
+          
+          const result = await AttendanceService.markAttendance(mockData);
+          
+          if (result.success) {
+            toast({
+              title: "Attendance Marked!",
+              description: result.message,
+            });
+            setQrCode("");
+            await loadAttendanceData();
+          } else {
+            toast({
+              title: "Failed to Mark Attendance",
+              description: result.message,
+              variant: "destructive",
+            });
+          }
+        } else {
+          toast({
+            title: "Invalid Code",
+            description: "The attendance code is invalid or not for your enrolled classes",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error marking attendance:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark attendance. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleQRScanSuccess = (scannedCode: string) => {
+    setQrCode(scannedCode);
+    markAttendance(scannedCode);
+  };
+
+  const handleManualSubmit = () => {
+    markAttendance(qrCode);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -79,9 +220,7 @@ export const StudentAttendance = () => {
     }
   };
 
-  const overallAttendanceRate = Math.round(
-    studentClasses.reduce((acc, cls) => acc + cls.attendanceRate, 0) / studentClasses.length
-  );
+  const overallAttendanceRate = attendanceStats.rate;
 
   return (
     <div className="min-h-screen p-3 sm:p-6 animate-fade-in">
@@ -131,9 +270,7 @@ export const StudentAttendance = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Classes Attended</p>
-                <p className="text-2xl font-bold">
-                  {studentClasses.reduce((acc, cls) => acc + cls.attended, 0)}
-                </p>
+                <p className="text-2xl font-bold">{attendanceStats.attended}</p>
               </div>
             </div>
           </CardContent>
@@ -147,9 +284,7 @@ export const StudentAttendance = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Classes</p>
-                <p className="text-2xl font-bold">
-                  {studentClasses.reduce((acc, cls) => acc + cls.totalClasses, 0)}
-                </p>
+                <p className="text-2xl font-bold">{attendanceStats.totalClasses}</p>
               </div>
             </div>
           </CardContent>
@@ -175,13 +310,22 @@ export const StudentAttendance = () => {
                 placeholder="Enter QR code or attendance code"
                 value={qrCode}
                 onChange={(e) => setQrCode(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleManualSubmit()}
               />
             </div>
-            <Button className="w-full bg-gradient-primary hover:shadow-glow">
-              Mark Present
+            <Button 
+              className="w-full bg-gradient-primary hover:shadow-glow"
+              onClick={handleManualSubmit}
+              disabled={isSubmitting || !qrCode.trim()}
+            >
+              {isSubmitting ? "Marking..." : "Mark Present"}
             </Button>
             <div className="text-center">
-              <Button variant="outline" className="gap-2">
+              <Button 
+                variant="outline" 
+                className="gap-2"
+                onClick={() => setShowQRScanner(true)}
+              >
                 <QrCode className="h-4 w-4" />
                 Scan QR Code
               </Button>
@@ -202,18 +346,32 @@ export const StudentAttendance = () => {
                   <div className="flex items-center gap-3">
                     {getStatusIcon(record.status)}
                     <div>
-                      <p className="font-medium text-sm">{record.class}</p>
-                      <p className="text-xs text-muted-foreground">{record.date}</p>
+                      <p className="font-medium text-sm">{record.class_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(record.timestamp).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <Badge variant="outline" className={getStatusColor(record.status)}>
                       {record.status}
                     </Badge>
-                    <p className="text-xs text-muted-foreground mt-1">{record.time}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(record.timestamp).toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </p>
                   </div>
                 </div>
               ))}
+              {recentAttendance.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <QrCode className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No attendance records yet</p>
+                  <p className="text-xs">Start marking your attendance to see records here</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -269,6 +427,13 @@ export const StudentAttendance = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* QR Scanner Dialog */}
+      <QRScanner
+        isOpen={showQRScanner}
+        onClose={() => setShowQRScanner(false)}
+        onScanSuccess={handleQRScanSuccess}
+      />
     </div>
   );
 };
