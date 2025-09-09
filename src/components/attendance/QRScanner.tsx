@@ -27,7 +27,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuc
       if (!isOpen || !webcamRef.current) return;
 
       try {
-        // Request camera permission
+        // Always request camera permission immediately
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         setHasPermission(true);
         stream.getTracks().forEach(track => track.stop()); // Stop the test stream
@@ -36,7 +36,6 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuc
         setError(null);
 
         codeReader = new BrowserMultiFormatReader();
-        
         // Get video element from webcam
         const videoElement = webcamRef.current.video;
         if (!videoElement) return;
@@ -45,24 +44,18 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuc
         codeReader.decodeFromVideoDevice(undefined, videoElement, (result, error) => {
           if (result) {
             const scannedText = result.getText();
-            console.log('QR Code scanned:', scannedText);
-            
             toast({
               title: "QR Code Scanned!",
               description: "Attendance code detected successfully",
             });
-            
             onScanSuccess(scannedText);
             onClose();
           }
-          
           if (error && error.name !== 'NotFoundException') {
             console.error('Scanning error:', error);
           }
         });
-
       } catch (err) {
-        console.error('Camera error:', err);
         setHasPermission(false);
         setError('Camera access denied. Please allow camera permissions and try again.');
         toast({
@@ -74,6 +67,8 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuc
     };
 
     if (isOpen) {
+      setHasPermission(null); // Reset permission state every time dialog opens
+      setError(null);
       startScanner();
     }
 
@@ -92,6 +87,8 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuc
   };
 
   const requestPermission = async () => {
+    setError(null);
+    setHasPermission(null);
     try {
       await navigator.mediaDevices.getUserMedia({ video: true });
       setHasPermission(true);

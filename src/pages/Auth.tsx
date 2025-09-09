@@ -317,7 +317,7 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
-                  <Select value={role} onValueChange={(value: "teacher" | "admin" | "student") => setRole(value)}>
+                  <Select value={role} onValueChange={(value: "teacher" | "student") => setRole(value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select your role">
                         <div className="flex items-center gap-2">
@@ -337,12 +337,6 @@ const Auth = () => {
                         <div className="flex items-center gap-2">
                           <GraduationCap className="h-4 w-4" />
                           Teacher
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="admin">
-                        <div className="flex items-center gap-2">
-                          <Shield className="h-4 w-4" />
-                          Admin
                         </div>
                       </SelectItem>
                     </SelectContent>
