@@ -23,27 +23,51 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuc
   useEffect(() => {
     let codeReader: BrowserMultiFormatReader | null = null;
 
-    const startScanner = async () => {
-      if (!isOpen || !webcamRef.current) return;
+    const requestCameraPermission = async () => {
+      if (!isOpen) return;
 
       try {
-        // Always request camera permission immediately
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // Request camera permission immediately when dialog opens
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: 'environment' // Prefer back camera on mobile
+          } 
+        });
         setHasPermission(true);
-        stream.getTracks().forEach(track => track.stop()); // Stop the test stream
-
-        setIsScanning(true);
         setError(null);
+        stream.getTracks().forEach(track => track.stop()); // Stop the test stream
+      } catch (err) {
+        console.error('Camera permission error:', err);
+        setHasPermission(false);
+        setError('Camera access denied. Please allow camera permissions and try again.');
+        toast({
+          title: "Camera Access Denied",
+          description: "Please allow camera permissions to scan QR codes",
+          variant: "destructive",
+        });
+      }
+    };
 
+    const startScanner = async () => {
+      if (!isOpen || !hasPermission) return;
+
+      // Wait a bit for the webcam component to initialize
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      if (!webcamRef.current?.video) {
+        console.error('Video element not ready');
+        return;
+      }
+
+      try {
+        setIsScanning(true);
         codeReader = new BrowserMultiFormatReader();
-        // Get video element from webcam
-        const videoElement = webcamRef.current.video;
-        if (!videoElement) return;
-
+        
         // Start continuous scanning
-        codeReader.decodeFromVideoDevice(undefined, videoElement, (result, error) => {
+        codeReader.decodeFromVideoDevice(undefined, webcamRef.current.video, (result, error) => {
           if (result) {
             const scannedText = result.getText();
+            console.log('QR Code scanned:', scannedText);
             toast({
               title: "QR Code Scanned!",
               description: "Attendance code detected successfully",
@@ -56,19 +80,20 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuc
           }
         });
       } catch (err) {
-        setHasPermission(false);
-        setError('Camera access denied. Please allow camera permissions and try again.');
-        toast({
-          title: "Camera Access Denied",
-          description: "Please allow camera permissions to scan QR codes",
-          variant: "destructive",
-        });
+        console.error('Scanner initialization error:', err);
+        setError('Failed to initialize scanner. Please try again.');
       }
     };
 
     if (isOpen) {
-      setHasPermission(null); // Reset permission state every time dialog opens
+      setHasPermission(null); // Reset permission state
       setError(null);
+      setIsScanning(false);
+      requestCameraPermission();
+    }
+
+    // Start scanner only after permission is granted
+    if (hasPermission === true && isOpen) {
       startScanner();
     }
 
@@ -78,7 +103,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuc
       }
       setIsScanning(false);
     };
-  }, [isOpen, onScanSuccess, onClose, toast]);
+  }, [isOpen, hasPermission, onScanSuccess, onClose, toast]);
 
   const handleClose = () => {
     setIsScanning(false);
@@ -139,9 +164,18 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuc
                     className="w-full h-full object-cover"
                     screenshotFormat="image/jpeg"
                     videoConstraints={{
-                      width: 400,
-                      height: 400,
+                      width: { ideal: 1280 },
+                      height: { ideal: 720 },
                       facingMode: "environment"
+                    }}
+                    onUserMedia={() => {
+                      console.log('Webcam ready');
+                      // Webcam is ready, scanner will start automatically
+                    }}
+                    onUserMediaError={(error) => {
+                      console.error('Webcam error:', error);
+                      setHasPermission(false);
+                      setError('Failed to access camera. Please check permissions.');
                     }}
                   />
                 )}
