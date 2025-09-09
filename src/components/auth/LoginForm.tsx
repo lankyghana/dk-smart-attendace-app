@@ -95,8 +95,12 @@ export const LoginForm = () => {
     <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in">
       <Card className="w-full max-w-md glass shadow-elevated">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center shadow-glow">
-            <GraduationCap className="h-8 w-8 text-primary-foreground" />
+          <div className="mx-auto w-20 h-20 flex items-center justify-center">
+            <img 
+              src="/dk-logo-large.svg" 
+              alt="DK Smart Attendance Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
             <CardTitle className="text-2xl font-bold">Smart Attendance</CardTitle>

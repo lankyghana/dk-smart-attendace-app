@@ -87,8 +87,12 @@ export const Sidebar = ({ activeTab, onTabChange, userRole, availableTabs }: Sid
         <div className="flex h-full flex-col">
           {/* App branding and logo section */}
           <div className="flex h-16 items-center gap-3 border-b border-border/50 px-3 sm:px-4">
-            <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-gradient-primary flex-shrink-0">
-              <GraduationCap className="h-4 w-4 sm:h-6 sm:w-6 text-primary-foreground" />
+            <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center flex-shrink-0">
+              <img 
+                src="/dk-logo.svg" 
+                alt="DK Smart Attendance Logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
             {!isCollapsed && (
               <div className="flex flex-col min-w-0 flex-1">

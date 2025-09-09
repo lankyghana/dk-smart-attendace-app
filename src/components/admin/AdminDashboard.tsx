@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TeacherManagement } from "@/components/admin/TeacherManagement";
+import { useAdminStats, useAttendanceTrends, useDepartmentStats, useRecentActivities } from "@/hooks/useAdminData";
 import { 
   Users, 
   GraduationCap, 
@@ -30,49 +31,61 @@ import {
   Cell
 } from "recharts";
 
-// Mock admin dashboard data
-const systemStats = {
-  totalUsers: 1247,
-  totalTeachers: 42,
-  totalStudents: 1205,
-  totalClasses: 156,
-  activeClasses: 134,
-  pendingApprovals: 8,
-  systemUptime: "99.9%",
-  avgAttendance: 87.5
-};
-
-const attendanceTrends = [
-  { month: "Jan", attendance: 85 },
-  { month: "Feb", attendance: 88 },
-  { month: "Mar", attendance: 82 },
-  { month: "Apr", attendance: 90 },
-  { month: "May", attendance: 87 },
-  { month: "Jun", attendance: 92 },
-  { month: "Jul", attendance: 89 },
-  { month: "Aug", attendance: 91 },
-  { month: "Sep", attendance: 88 }
-];
-
-const departmentStats = [
-  { name: "Computer Science", teachers: 12, students: 340, color: "#3b82f6" },
-  { name: "Mathematics", teachers: 8, students: 280, color: "#10b981" },
-  { name: "Physics", teachers: 6, students: 220, color: "#f59e0b" },
-  { name: "Chemistry", teachers: 7, students: 190, color: "#ef4444" },
-  { name: "Biology", teachers: 5, students: 175, color: "#8b5cf6" },
-  { name: "English", teachers: 4, students: 0, color: "#06b6d4" }
-];
-
-const recentActivities = [
-  { type: "teacher_registered", message: "New teacher Dr. Emily Chen registered", time: "2 hours ago", icon: UserCheck },
-  { type: "class_created", message: "Quantum Physics class created", time: "4 hours ago", icon: BookOpen },
-  { type: "system_alert", message: "High attendance rate in Computer Science", time: "6 hours ago", icon: TrendingUp },
-  { type: "approval_pending", message: "5 teacher accounts pending approval", time: "1 day ago", icon: AlertTriangle },
-  { type: "class_completed", message: "Linear Algebra semester completed", time: "2 days ago", icon: Calendar }
-];
-
-export const AdminDashboard = () => {
+export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
+  
+  // Use custom hooks to fetch live data
+  const { stats, loading: statsLoading, error: statsError } = useAdminStats();
+  const { trends, loading: trendsLoading } = useAttendanceTrends();
+  const { departments, loading: deptLoading } = useDepartmentStats();
+  const { activities, loading: activitiesLoading } = useRecentActivities();
+
+  // Loading state
+  if (statsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading admin dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (statsError) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">Error loading dashboard: {statsError}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Use live data or fallback to defaults
+  const systemStats = stats || {
+    totalUsers: 0,
+    totalTeachers: 0,
+    totalStudents: 0,
+    totalClasses: 0,
+    activeClasses: 0,
+    pendingApprovals: 0,
+    systemUptime: "N/A",
+    avgAttendance: 0
+  };
+
+  const attendanceTrends = trends.length > 0 ? trends : [
+    { month: "No Data", attendance: 0 }
+  ];
+
+  const departmentStats = departments.length > 0 ? departments : [
+    { name: "No Departments", teachers: 0, students: 0, color: "#gray" }
+  ];
+
+  const recentActivities = activities.length > 0 ? activities : [
+    { type: "system_info", message: "No recent activities", time: "N/A", icon: "Clock", created_at: new Date().toISOString() }
+  ];
 
   return (
     <div className="min-h-screen p-6 animate-fade-in">
@@ -160,15 +173,24 @@ export const AdminDashboard = () => {
                 <CardDescription>Monthly attendance rates across all classes</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={attendanceTrends}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="attendance" stroke="#3b82f6" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
+                {trendsLoading ? (
+                  <div className="flex items-center justify-center h-[300px]">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-600">Loading trends...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={attendanceTrends}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="attendance" stroke="#3b82f6" strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -179,28 +201,37 @@ export const AdminDashboard = () => {
                 <CardDescription>Teachers and students by department</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {departmentStats.map((dept, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-4 h-4 rounded-full" 
-                          style={{ backgroundColor: dept.color }}
-                        />
-                        <div>
-                          <p className="font-medium">{dept.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {dept.teachers} teachers • {dept.students} students
-                          </p>
+                {deptLoading ? (
+                  <div className="flex items-center justify-center h-[200px]">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-600">Loading departments...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {departmentStats.map((dept, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-4 h-4 rounded-full" 
+                            style={{ backgroundColor: dept.color }}
+                          />
+                          <div>
+                            <p className="font-medium">{dept.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {dept.teachers} teachers • {dept.students} students
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium">{dept.teachers + dept.students}</p>
+                          <p className="text-xs text-muted-foreground">total</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">{dept.teachers + dept.students}</p>
-                        <p className="text-xs text-muted-foreground">total</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -212,9 +243,31 @@ export const AdminDashboard = () => {
               <CardDescription>Latest updates and alerts</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {recentActivities.map((activity, index) => {
-                  const Icon = activity.icon;
+              {activitiesLoading ? (
+                <div className="flex items-center justify-center h-[200px]">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-sm text-gray-600">Loading activities...</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentActivities.map((activity, index) => {
+                    // Map string icon names to actual icon components
+                    const getIcon = (iconName: string) => {
+                      switch (iconName) {
+                        case 'UserCheck': return UserCheck;
+                        case 'Users': return Users;
+                        case 'TrendingUp': return TrendingUp;
+                        case 'Clock': return Clock;
+                        case 'BookOpen': return BookOpen;
+                        case 'Calendar': return Calendar;
+                        default: return Users;
+                      }
+                    };
+                  
+                  const Icon = getIcon(activity.icon);
+                  
                   return (
                     <div key={index} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
                       <Icon className="h-5 w-5 text-muted-foreground" />
@@ -225,7 +278,8 @@ export const AdminDashboard = () => {
                     </div>
                   );
                 })}
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
