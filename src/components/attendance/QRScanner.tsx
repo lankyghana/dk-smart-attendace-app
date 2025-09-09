@@ -1,10 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import { BrowserMultiFormatReader } from '@zxing/library';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Camera, X, RotateCcw } from "lucide-react";
+import { Camera, X, RotateCcw, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface QRScannerProps {
@@ -13,115 +13,149 @@ interface QRScannerProps {
   onScanSuccess: (result: string) => void;
 }
 
+type PermissionState = 'unknown' | 'granted' | 'denied' | 'requesting';
+
 export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuccess }) => {
   const webcamRef = useRef<Webcam>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permissionState, setPermissionState] = useState<PermissionState>('unknown');
+  const [codeReader, setCodeReader] = useState<BrowserMultiFormatReader | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    let codeReader: BrowserMultiFormatReader | null = null;
-
-    const requestCameraPermission = async () => {
-      if (!isOpen) return;
-
-      try {
-        // Request camera permission immediately when dialog opens
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: 'environment' // Prefer back camera on mobile
-          } 
-        });
-        setHasPermission(true);
-        setError(null);
-        stream.getTracks().forEach(track => track.stop()); // Stop the test stream
-      } catch (err) {
-        console.error('Camera permission error:', err);
-        setHasPermission(false);
-        setError('Camera access denied. Please allow camera permissions and try again.');
-        toast({
-          title: "Camera Access Denied",
-          description: "Please allow camera permissions to scan QR codes",
-          variant: "destructive",
-        });
-      }
-    };
-
-    const startScanner = async () => {
-      if (!isOpen || !hasPermission) return;
-
-      // Wait a bit for the webcam component to initialize
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      if (!webcamRef.current?.video) {
-        console.error('Video element not ready');
-        return;
-      }
-
-      try {
-        setIsScanning(true);
-        codeReader = new BrowserMultiFormatReader();
-        
-        // Start continuous scanning
-        codeReader.decodeFromVideoDevice(undefined, webcamRef.current.video, (result, error) => {
-          if (result) {
-            const scannedText = result.getText();
-            console.log('QR Code scanned:', scannedText);
-            toast({
-              title: "QR Code Scanned!",
-              description: "Attendance code detected successfully",
-            });
-            onScanSuccess(scannedText);
-            onClose();
-          }
-          if (error && error.name !== 'NotFoundException') {
-            console.error('Scanning error:', error);
-          }
-        });
-      } catch (err) {
-        console.error('Scanner initialization error:', err);
-        setError('Failed to initialize scanner. Please try again.');
-      }
-    };
-
-    if (isOpen) {
-      setHasPermission(null); // Reset permission state
+  // Request camera permission
+  const requestCameraPermission = useCallback(async (): Promise<boolean> => {
+    try {
+      setPermissionState('requesting');
       setError(null);
+      
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Camera API not supported in this browser');
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment', // Prefer back camera on mobile
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      
+      // Permission granted, stop the test stream
+      stream.getTracks().forEach(track => track.stop());
+      setPermissionState('granted');
+      return true;
+    } catch (err: any) {
+      console.error('Camera permission error:', err);
+      setPermissionState('denied');
+      
+      let errorMessage = 'Camera access denied. Please allow camera permissions and try again.';
+      if (err.name === 'NotAllowedError') {
+        errorMessage = 'Camera permission denied. Please click the camera icon in your browser\'s address bar and allow camera access.';
+      } else if (err.name === 'NotFoundError') {
+        errorMessage = 'No camera found on this device.';
+      } else if (err.name === 'NotSupportedError') {
+        errorMessage = 'Camera not supported in this browser. Please use Chrome, Firefox, or Safari.';
+      }
+      
+      setError(errorMessage);
+      toast({
+        title: "Camera Access Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [toast]);
+
+  // Initialize QR scanner
+  const initializeScanner = useCallback(async () => {
+    if (!webcamRef.current?.video || permissionState !== 'granted') {
+      return;
+    }
+
+    try {
+      setIsScanning(true);
+      setError(null);
+      
+      const reader = new BrowserMultiFormatReader();
+      setCodeReader(reader);
+      
+      // Start continuous scanning
+      reader.decodeFromVideoDevice(undefined, webcamRef.current.video, (result, error) => {
+        if (result) {
+          const scannedText = result.getText();
+          console.log('QR Code scanned:', scannedText);
+          
+          toast({
+            title: "QR Code Scanned!",
+            description: "Attendance code detected successfully",
+          });
+          
+          onScanSuccess(scannedText);
+          handleClose();
+        }
+        
+        if (error && error.name !== 'NotFoundException') {
+          console.error('Scanning error:', error);
+        }
+      });
+    } catch (err) {
+      console.error('Scanner initialization error:', err);
+      setError('Failed to initialize QR scanner. Please try again.');
       setIsScanning(false);
+    }
+  }, [permissionState, onScanSuccess, toast]);
+
+  // Handle webcam ready
+  const handleWebcamReady = useCallback(() => {
+    console.log('Webcam ready, initializing scanner...');
+    // Small delay to ensure video element is properly initialized
+    setTimeout(() => {
+      initializeScanner();
+    }, 500);
+  }, [initializeScanner]);
+
+  // Handle webcam error
+  const handleWebcamError = useCallback((error: string | DOMException) => {
+    console.error('Webcam error:', error);
+    setPermissionState('denied');
+    setError('Failed to access camera. Please check permissions and try again.');
+  }, []);
+
+  // Main effect for permission handling
+  useEffect(() => {
+    if (isOpen && permissionState === 'unknown') {
       requestCameraPermission();
     }
+  }, [isOpen, permissionState, requestCameraPermission]);
 
-    // Start scanner only after permission is granted
-    if (hasPermission === true && isOpen) {
-      startScanner();
-    }
-
+  // Cleanup effect
+  useEffect(() => {
     return () => {
       if (codeReader) {
         codeReader.reset();
       }
       setIsScanning(false);
     };
-  }, [isOpen, hasPermission, onScanSuccess, onClose, toast]);
+  }, [codeReader]);
 
   const handleClose = () => {
+    if (codeReader) {
+      codeReader.reset();
+      setCodeReader(null);
+    }
     setIsScanning(false);
     setError(null);
+    setPermissionState('unknown');
     onClose();
   };
 
-  const requestPermission = async () => {
+  const handleRetryPermission = () => {
+    setPermissionState('unknown');
     setError(null);
-    setHasPermission(null);
-    try {
-      await navigator.mediaDevices.getUserMedia({ video: true });
-      setHasPermission(true);
-      setError(null);
-    } catch (err) {
-      setHasPermission(false);
-      setError('Camera access denied. Please allow camera permissions in your browser settings.');
-    }
+    requestCameraPermission();
   };
 
   return (
@@ -138,26 +172,38 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuc
         </DialogHeader>
 
         <div className="space-y-4">
-          {hasPermission === false ? (
+          {permissionState === 'denied' ? (
             <Card>
               <CardContent className="p-6 text-center space-y-4">
-                <Camera className="h-12 w-12 mx-auto text-muted-foreground" />
+                <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
                 <div>
                   <h3 className="font-semibold">Camera Permission Required</h3>
                   <p className="text-sm text-muted-foreground mt-1">
                     {error || "We need access to your camera to scan QR codes"}
                   </p>
                 </div>
-                <Button onClick={requestPermission} className="w-full">
+                <Button onClick={handleRetryPermission} className="w-full">
                   <Camera className="h-4 w-4 mr-2" />
-                  Allow Camera Access
+                  Try Again
                 </Button>
+              </CardContent>
+            </Card>
+          ) : permissionState === 'requesting' ? (
+            <Card>
+              <CardContent className="p-6 text-center space-y-4">
+                <Camera className="h-12 w-12 mx-auto text-muted-foreground animate-pulse" />
+                <div>
+                  <h3 className="font-semibold">Requesting Camera Access</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Please allow camera access when prompted
+                  </p>
+                </div>
               </CardContent>
             </Card>
           ) : (
             <div className="relative">
               <div className="aspect-square bg-black rounded-lg overflow-hidden">
-                {hasPermission && (
+                {permissionState === 'granted' && (
                   <Webcam
                     ref={webcamRef}
                     audio={false}
@@ -168,17 +214,11 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuc
                       height: { ideal: 720 },
                       facingMode: "environment"
                     }}
-                    onUserMedia={() => {
-                      console.log('Webcam ready');
-                      // Webcam is ready, scanner will start automatically
-                    }}
-                    onUserMediaError={(error) => {
-                      console.error('Webcam error:', error);
-                      setHasPermission(false);
-                      setError('Failed to access camera. Please check permissions.');
-                    }}
+                    onUserMedia={handleWebcamReady}
+                    onUserMediaError={handleWebcamError}
                   />
                 )}
+              </div>
               </div>
               
               {/* Scanning overlay */}
@@ -208,8 +248,8 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuc
               <X className="h-4 w-4 mr-2" />
               Cancel
             </Button>
-            {hasPermission && (
-              <Button variant="outline" onClick={requestPermission} className="flex-1">
+            {permissionState === 'denied' && (
+              <Button variant="outline" onClick={handleRetryPermission} className="flex-1">
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Retry
               </Button>
