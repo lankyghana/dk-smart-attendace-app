@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TeacherManagement } from "@/components/admin/TeacherManagement";
+import { BrandManagement } from "@/components/admin/BrandManagement";
 import { useAdminStats, useAttendanceTrends, useDepartmentStats, useRecentActivities } from "@/hooks/useAdminData";
 import { 
   Users, 
@@ -98,10 +99,11 @@ export function AdminDashboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">System Overview</TabsTrigger>
           <TabsTrigger value="teachers">Teacher Management</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="branding">Brand Management</TabsTrigger>
           <TabsTrigger value="settings">System Settings</TabsTrigger>
         </TabsList>
 
@@ -299,6 +301,10 @@ export function AdminDashboard() {
               <p className="text-muted-foreground">Advanced analytics features will be available soon</p>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="branding" className="space-y-6">
+          <BrandManagement />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
