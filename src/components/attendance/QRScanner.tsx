@@ -219,7 +219,6 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScanSuc
                   />
                 )}
               </div>
-              </div>
               
               {/* Scanning overlay */}
               <div className="absolute inset-0 pointer-events-none">
